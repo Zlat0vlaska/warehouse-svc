@@ -56,9 +56,9 @@ func (s *Store) UpdateStock(id string, delta int) error {
 	if !ok {
 		return ErrNotFound
 	}
-	p.Stock += delta
-	if p.Stock < 0 {
+	if p.Stock+delta < 0 {
 		return ErrInsufficientStock
 	}
+	p.Stock += delta
 	return nil
 }
