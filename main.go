@@ -1,13 +1,80 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/Zlat0vlaska/warehouse-svc/warehouse"
 )
 
+type createProductRequest struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Price int    `json:"price"`
+	Stock int    `json:"stock"`
+}
+
+func createProductHandler(store *warehouse.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req createProductRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+
+		p := warehouse.Product{
+			ID:    req.ID,
+			Name:  req.Name,
+			Price: req.Price,
+			Stock: req.Stock,
+		}
+
+		switch r.Method {
+		case http.MethodGet:
+			if _, err := store.Get(p.ID); err != nil {
+				if errors.Is(err, warehouse.ErrNotFound) {
+					http.Error(w, err.Error(), http.StatusNotFound)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(p)
+
+		case http.MethodPost:
+			if err := store.Add(p); err != nil {
+				if errors.Is(err, warehouse.ErrAlreadyExists) {
+					http.Error(w, err.Error(), http.StatusConflict)
+					return
+				}
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(p)
+		default:
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		}
+
+	}
+}
+
 func main() {
+	mux := http.NewServeMux()
 	store := warehouse.New()
+	log.Fatal(http.ListenAndServe(":8080", mux))
+
+	mux.HandleFunc("GET /products", listHandler)
+	mux.HandleFunc("GET /products/{id}", getHandler)
+	mux.HandleFunc("POST /products", createHandler)
+	mux.HandleFunc("PATCH /products/{id}/stock", updateStockHandler)
+
 	if err := store.Add(warehouse.Product{ID: "1", Name: "Product 1", Price: 100, Stock: 10}); err != nil {
 		fmt.Printf("Ошибка добавления: %v\n", err)
 	} else {
