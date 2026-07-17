@@ -96,13 +96,19 @@ func updateStockHandler(store *warehouse.Store) http.HandlerFunc {
 			http.Error(w, "invalid json body", http.StatusBadRequest)
 			return
 		}
-		err := store.UpdateStock(id, req.Delta)
-		if err != nil {
-			if errors.Is(err, warehouse.ErrInsufficientStock) {
+
+		if err := store.UpdateStock(id, req.Delta); err != nil {
+			switch {
+			case errors.Is(err, warehouse.ErrNotFound):
+				http.Error(w, err.Error(), http.StatusNotFound)
+			case errors.Is(err, warehouse.ErrInsufficientStock):
 				http.Error(w, err.Error(), http.StatusConflict)
-				return
+			default:
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
+			return
 		}
+
 		product, err := store.Get(id)
 		if err != nil {
 			if errors.Is(err, warehouse.ErrNotFound) {
