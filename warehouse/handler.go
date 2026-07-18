@@ -25,7 +25,7 @@ func RegisterRoutes(mux *http.ServeMux, svc *ProductService) {
 	mux.HandleFunc("PATCH /products/{id}/stock", updateStockHandler(svc))
 }
 
-func createProductHandler(store *ProductService) http.HandlerFunc {
+func createProductHandler(svc *ProductService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createProductRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -40,7 +40,7 @@ func createProductHandler(store *ProductService) http.HandlerFunc {
 			Stock: req.Stock,
 		}
 
-		if err := store.AddProduct(p); err != nil {
+		if err := svc.Add(p); err != nil {
 			if errors.Is(err, ErrAlreadyExists) {
 				http.Error(w, err.Error(), http.StatusConflict)
 				return
@@ -55,7 +55,7 @@ func createProductHandler(store *ProductService) http.HandlerFunc {
 	}
 }
 
-func getProductHandler(s *ProductService) http.HandlerFunc {
+func getProductHandler(svc *ProductService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
@@ -63,7 +63,7 @@ func getProductHandler(s *ProductService) http.HandlerFunc {
 			return
 		}
 
-		product, err := s.GetProduct(id)
+		product, err := svc.Get(id)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
@@ -78,9 +78,9 @@ func getProductHandler(s *ProductService) http.HandlerFunc {
 	}
 }
 
-func listProductsHandler(s *ProductService) http.HandlerFunc {
+func listProductsHandler(svc *ProductService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		list := s.ListProduct()
+		list := svc.List()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -88,7 +88,7 @@ func listProductsHandler(s *ProductService) http.HandlerFunc {
 	}
 }
 
-func updateStockHandler(s *ProductService) http.HandlerFunc {
+func updateStockHandler(svc *ProductService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
@@ -102,7 +102,7 @@ func updateStockHandler(s *ProductService) http.HandlerFunc {
 			return
 		}
 
-		if err := s.UpdateStockProduct(id, req.Delta); err != nil {
+		if err := svc.UpdateStock(id, req.Delta); err != nil {
 			switch {
 			case errors.Is(err, ErrNotFound):
 				http.Error(w, err.Error(), http.StatusNotFound)
@@ -114,7 +114,7 @@ func updateStockHandler(s *ProductService) http.HandlerFunc {
 			return
 		}
 
-		product, err := s.GetProduct(id)
+		product, err := svc.Get(id)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)

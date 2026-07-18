@@ -8,24 +8,21 @@ func NewProductService(repo *MemoryRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
-func (s *ProductService) AddProduct(p Product) error {
+func (svc *ProductService) Add(p Product) error {
 	// тут будет валидация: if p.Name == "" { return ... }
 	// тут будет обогащение: p.CreatedAt = time.Now()
 	// пока — просто прокси, и это нормально
-	return s.repo.Add(p)
+	return svc.repo.Add(p)
 }
 
-func (s *ProductService) GetProduct(id string) (Product, error) {
-
-	return s.repo.Get(id)
+func (svc *ProductService) Get(id string) (Product, error) {
+	return svc.repo.Get(id)
 }
 
-func (s *ProductService) ListProduct() []Product {
-
-	return s.repo.List()
+func (svc *ProductService) List() []Product {
+	return svc.repo.List()
 }
 
-func (s *ProductService) UpdateStockProduct(id string, delta int) error {
-
-	return s.repo.UpdateStock(id, delta)
+func (svc *ProductService) UpdateStock(id string, delta int) error {
+	return svc.repo.UpdateStock(id, delta)
 }
