@@ -1,34 +1,18 @@
 package warehouse
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
-var (
-	ErrNotFound          = errors.New("product not found")
-	ErrAlreadyExists     = errors.New("product already exists")
-	ErrInsufficientStock = errors.New("insufficient stock")
-)
-
-type Product struct {
-	ID    string
-	Name  string
-	Price int
-	Stock int
-}
-
-type Store struct {
+type MemoryRepository struct {
 	products map[string]*Product
 }
 
-func New() *Store {
-	return &Store{
+func NewMemoryRepository() *MemoryRepository {
+	return &MemoryRepository{
 		products: make(map[string]*Product),
 	}
 }
 
-func (s *Store) Add(p Product) error {
+func (s *MemoryRepository) Add(p Product) error {
 	if _, ok := s.products[p.ID]; ok {
 		return fmt.Errorf("add %q: %w", p.ID, ErrAlreadyExists)
 	}
@@ -36,14 +20,14 @@ func (s *Store) Add(p Product) error {
 	return nil
 }
 
-func (s *Store) Get(id string) (Product, error) {
+func (s *MemoryRepository) Get(id string) (Product, error) {
 	if p, ok := s.products[id]; ok {
 		return *p, nil
 	}
 	return Product{}, ErrNotFound
 }
 
-func (s *Store) List() []Product {
+func (s *MemoryRepository) List() []Product {
 	var sl = make([]Product, 0, len(s.products))
 	for _, value := range s.products {
 		sl = append(sl, *value)
@@ -51,7 +35,7 @@ func (s *Store) List() []Product {
 	return sl
 }
 
-func (s *Store) UpdateStock(id string, delta int) error {
+func (s *MemoryRepository) UpdateStock(id string, delta int) error {
 	p, ok := s.products[id]
 	if !ok {
 		return ErrNotFound
