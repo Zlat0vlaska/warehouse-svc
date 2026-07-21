@@ -13,4 +13,5 @@ var (
 	ErrNotFound          = errors.New("product not found")
 	ErrAlreadyExists     = errors.New("product already exists")
 	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrValidation        = errors.New("validation failed")
 )

@@ -6,6 +6,8 @@ type MemoryRepository struct {
 	products map[string]*Product
 }
 
+var _ productRepository = (*MemoryRepository)(nil)
+
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		products: make(map[string]*Product),

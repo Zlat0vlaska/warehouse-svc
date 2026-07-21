@@ -41,11 +41,14 @@ func createProductHandler(svc *ProductService) http.HandlerFunc {
 		}
 
 		if err := svc.Add(p); err != nil {
-			if errors.Is(err, ErrAlreadyExists) {
+			switch {
+			case errors.Is(err, ErrValidation):
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			case errors.Is(err, ErrAlreadyExists):
 				http.Error(w, err.Error(), http.StatusConflict)
-				return
+			default:
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -104,6 +107,8 @@ func updateStockHandler(svc *ProductService) http.HandlerFunc {
 
 		if err := svc.UpdateStock(id, req.Delta); err != nil {
 			switch {
+			case errors.Is(err, ErrValidation):
+				http.Error(w, err.Error(), http.StatusBadRequest)
 			case errors.Is(err, ErrNotFound):
 				http.Error(w, err.Error(), http.StatusNotFound)
 			case errors.Is(err, ErrInsufficientStock):
