@@ -2,6 +2,7 @@ package warehouse
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -19,10 +20,11 @@ func (m *mockRepo) UpdateStock(id string, delta int) error { return m.updateStoc
 
 func TestProductServiceAdd(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   Product
-		repoErr error // что вернёт mockRepo.Add
-		wantErr error // какая ошибка ожидается (nil = успех)
+		name          string
+		input         Product
+		repoErr       error  // что вернёт mockRepo.Add
+		wantErr       error  // какая ошибка ожидается (nil = успех)
+		wantMsgSubstr string // если не пусто, то проверяем, что сообщение об ошибке содержит эту подстроку
 	}{
 		{
 			name:    "success",
@@ -31,21 +33,31 @@ func TestProductServiceAdd(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:    "empty name",
-			input:   Product{ID: "1", Name: "", Price: 100, Stock: 10},
-			wantErr: ErrValidation, // до репо не должны дойти
+			name:          "empty name",
+			input:         Product{ID: "1", Name: "", Price: 100, Stock: 10},
+			wantErr:       ErrValidation, // до репо не должны дойти
+			wantMsgSubstr: "name must not be empty",
 		},
 		{
-			name:    "negative price",
-			input:   Product{ID: "1", Name: "X", Price: -1, Stock: 10},
-			wantErr: ErrValidation,
+			name:          "negative price",
+			input:         Product{ID: "1", Name: "X", Price: -1, Stock: 10},
+			wantErr:       ErrValidation,
+			wantMsgSubstr: "price must be positive",
 		},
 		{
-			name:    "negative stock",
-			input:   Product{ID: "1", Name: "X", Price: 100, Stock: -1},
-			wantErr: ErrValidation,
+			name:          "negative stock",
+			input:         Product{ID: "1", Name: "X", Price: 100, Stock: -1},
+			wantErr:       ErrValidation,
+			wantMsgSubstr: "stock must not be negative",
 		},
 		{
+			name:          "negative stock error",
+			input:         Product{ID: "1", Name: "X", Price: 100, Stock: -1},
+			wantErr:       ErrValidation,
+			wantMsgSubstr: "name must not be empty",
+		},
+		{
+
 			name:    "repo says duplicate",
 			input:   Product{ID: "1", Name: "X", Price: 100, Stock: 10},
 			repoErr: ErrAlreadyExists,
@@ -64,6 +76,9 @@ func TestProductServiceAdd(t *testing.T) {
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("got err %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantMsgSubstr != "" && !strings.Contains(err.Error(), tt.wantMsgSubstr) {
+				t.Errorf("err message %q does not contain %q", err.Error(), tt.wantMsgSubstr)
 			}
 		})
 	}
