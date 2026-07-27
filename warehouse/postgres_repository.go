@@ -102,7 +102,7 @@ func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta i
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		return fmt.Errorf("update stock %q: %w", id, ErrNotFound)
+		return fmt.Errorf("update stock %q: %w", id, ErrInsufficientStock)
 	}
 	return nil
 }
