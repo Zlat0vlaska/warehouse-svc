@@ -1,0 +1,104 @@
+package warehouse
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type PostgresRepository struct {
+	pool *pgxpool.Pool
+}
+
+var _ productRepository = (*PostgresRepository)(nil)
+
+func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
+	return &PostgresRepository{pool: pool}
+}
+
+func (r *PostgresRepository) Add(ctx context.Context, p Product) error {
+	const query = `
+        INSERT INTO products (id, name, price, stock)
+        VALUES ($1, $2, $3, $4)
+    `
+	_, err := r.pool.Exec(ctx, query, p.ID, p.Name, p.Price, p.Stock)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return fmt.Errorf("add %q: %w", p.ID, ErrAlreadyExists)
+		}
+	}
+	return err
+}
+
+func (r *PostgresRepository) Get(ctx context.Context, id string) (Product, error) {
+	const query = `
+		SELECT id, name, price, stock
+		FROM products
+		WHERE id = $1
+	`
+	var p Product
+	err := r.pool.QueryRow(ctx, query, id).Scan(&p.ID, &p.Name, &p.Price, &p.Stock)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Product{}, fmt.Errorf("get %q: %w", id, ErrNotFound)
+		}
+		return Product{}, fmt.Errorf("get %q: %w", id, err)
+	}
+	return p, nil
+}
+
+func (r *PostgresRepository) List(ctx context.Context) ([]Product, error) {
+	const query = `
+		SELECT id, name, price, stock
+		FROM products
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list products: %w", err)
+	}
+	defer rows.Close()
+
+	var sl []Product
+
+	for rows.Next() {
+		var p Product
+		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock)
+		if err != nil {
+			return nil, fmt.Errorf("scan product: %w", err)
+		}
+		sl = append(sl, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration: %w", err)
+	}
+
+	return sl, nil
+}
+
+func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta int) error {
+	const query = `
+		UPDATE products SET stock = stock + $2 
+    	WHERE id = $1 AND stock + $2 >= 0
+	`
+
+	commandTag, err := r.pool.Exec(ctx, query, id, delta)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23514" {
+			return fmt.Errorf("update stock %q: %w", id, ErrInsufficientStock)
+		}
+	}
+	if commandTag.RowsAffected() == 0 {
+		return fmt.Errorf("update stock %q: %w", id, ErrNotFound)
+	}
+	return err
+}

@@ -1,12 +1,15 @@
 package warehouse
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type productRepository interface {
-	Add(p Product) error
-	Get(id string) (Product, error)
-	List() []Product
-	UpdateStock(id string, delta int) error
+	Add(ctx context.Context, p Product) error
+	Get(ctx context.Context, id string) (Product, error)
+	List(ctx context.Context) ([]Product, error)
+	UpdateStock(ctx context.Context, id string, delta int) error
 }
 type ProductService struct {
 	repo productRepository
@@ -16,7 +19,7 @@ func NewProductService(repo productRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
-func (svc *ProductService) Add(p Product) error {
+func (svc *ProductService) Add(ctx context.Context, p Product) error {
 	if p.ID == "" {
 		return fmt.Errorf("add product: id must not be empty: %w", ErrValidation)
 	}
@@ -29,24 +32,20 @@ func (svc *ProductService) Add(p Product) error {
 	if p.Stock < 0 {
 		return fmt.Errorf("add product %q: stock must not be negative, got %d: %w", p.ID, p.Stock, ErrValidation)
 	}
-	return svc.repo.Add(p)
-	// тут будет валидация: if p.Name == "" { return ... }
-	// тут будет обогащение: p.CreatedAt = time.Now()
-	// пока — просто прокси, и это нормально
+	return svc.repo.Add(ctx, p)
 }
 
-func (svc *ProductService) Get(id string) (Product, error) {
-	return svc.repo.Get(id)
+func (svc *ProductService) Get(ctx context.Context, id string) (Product, error) {
+	return svc.repo.Get(ctx, id)
 }
 
-func (svc *ProductService) List() []Product {
-	return svc.repo.List()
+func (svc *ProductService) List(ctx context.Context) ([]Product, error) {
+	return svc.repo.List(ctx)
 }
 
-func (svc *ProductService) UpdateStock(id string, delta int) error {
+func (svc *ProductService) UpdateStock(ctx context.Context, id string, delta int) error {
 	if delta == 0 {
 		return fmt.Errorf("update stock for product %q: delta must not be zero: %w", id, ErrValidation)
 	}
-	return svc.repo.UpdateStock(id, delta)
-
+	return svc.repo.UpdateStock(ctx, id, delta)
 }

@@ -40,7 +40,7 @@ func createProductHandler(svc *ProductService) http.HandlerFunc {
 			Stock: req.Stock,
 		}
 
-		if err := svc.Add(p); err != nil {
+		if err := svc.Add(r.Context(), p); err != nil {
 			switch {
 			case errors.Is(err, ErrValidation):
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -66,7 +66,7 @@ func getProductHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		product, err := svc.Get(id)
+		product, err := svc.Get(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
@@ -83,7 +83,11 @@ func getProductHandler(svc *ProductService) http.HandlerFunc {
 
 func listProductsHandler(svc *ProductService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		list := svc.List()
+		list, err := svc.List(r.Context())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -105,7 +109,7 @@ func updateStockHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.UpdateStock(id, req.Delta); err != nil {
+		if err := svc.UpdateStock(r.Context(), id, req.Delta); err != nil {
 			switch {
 			case errors.Is(err, ErrValidation):
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -119,7 +123,7 @@ func updateStockHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		product, err := svc.Get(id)
+		product, err := svc.Get(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
