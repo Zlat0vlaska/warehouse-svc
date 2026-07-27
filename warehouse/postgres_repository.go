@@ -32,6 +32,7 @@ func (r *PostgresRepository) Add(ctx context.Context, p Product) error {
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return fmt.Errorf("add %q: %w", p.ID, ErrAlreadyExists)
 		}
+		return fmt.Errorf("add product %q: %w", p.ID, err)
 	}
 	return err
 }
@@ -85,6 +86,11 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Product, error) {
 }
 
 func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta int) error {
+	_, err := r.Get(ctx, id)
+	if err != nil {
+		return fmt.Errorf("update stock %q: %w", id, err)
+	}
+
 	const query = `
 		UPDATE products SET stock = stock + $2 
     	WHERE id = $1 AND stock + $2 >= 0
@@ -92,13 +98,11 @@ func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta i
 
 	commandTag, err := r.pool.Exec(ctx, query, id, delta)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23514" {
-			return fmt.Errorf("update stock %q: %w", id, ErrInsufficientStock)
-		}
+		return fmt.Errorf("update stock %q: %w", id, err)
 	}
+
 	if commandTag.RowsAffected() == 0 {
 		return fmt.Errorf("update stock %q: %w", id, ErrNotFound)
 	}
-	return err
+	return nil
 }

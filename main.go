@@ -18,10 +18,13 @@ func main() {
 
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
-		log.Fatalf("ping postgres: %v", err)
+		log.Fatalf("connect to postgres: %v", err)
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(context.Background()); err != nil {
+		log.Fatalf("ping postgres: %v", err)
+	}
 	repo := warehouse.NewPostgresRepository(pool)
 	svc := warehouse.NewProductService(repo)
 
