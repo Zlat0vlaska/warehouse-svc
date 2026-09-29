@@ -86,23 +86,39 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Product, error) {
 }
 
 func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta int) error {
-	_, err := r.Get(ctx, id)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("update stock %q: %w", id, err)
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var stock int
+	err = tx.QueryRow(ctx,
+		"SELECT stock FROM products WHERE id = $1 FOR UPDATE",
+		id,
+	).Scan(&stock)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("update stock %q: %w", id, ErrNotFound)
+		}
+		return fmt.Errorf("update  stock %q: %w", id, err)
 	}
 
-	const query = `
-		UPDATE products SET stock = stock + $2 
-    	WHERE id = $1 AND stock + $2 >= 0
-	`
-
-	commandTag, err := r.pool.Exec(ctx, query, id, delta)
-	if err != nil {
-		return fmt.Errorf("update stock %q: %w", id, err)
-	}
-
-	if commandTag.RowsAffected() == 0 {
+	if stock+delta < 0 {
 		return fmt.Errorf("update stock %q: %w", id, ErrInsufficientStock)
+	}
+
+	_, err = tx.Exec(ctx,
+		`UPDATE products SET stock = $2 WHERE id = $1`,
+		id, stock+delta,
+	)
+
+	if err != nil {
+		return fmt.Errorf("update stock %q: %w", id, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
 	}
 	return nil
 }

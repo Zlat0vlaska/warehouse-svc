@@ -3,9 +3,11 @@ package warehouse
 import (
 	"context"
 	"fmt"
+	"sync"
 )
 
 type MemoryRepository struct {
+	mu       sync.RWMutex
 	products map[string]*Product
 }
 
@@ -19,6 +21,9 @@ func NewMemoryRepository() *MemoryRepository {
 }
 
 func (svc *MemoryRepository) Add(ctx context.Context, p Product) error {
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+
 	if _, ok := svc.products[p.ID]; ok {
 		return fmt.Errorf("add %q: %w", p.ID, ErrAlreadyExists)
 	}
@@ -27,6 +32,9 @@ func (svc *MemoryRepository) Add(ctx context.Context, p Product) error {
 }
 
 func (svc *MemoryRepository) Get(ctx context.Context, id string) (Product, error) {
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+
 	if p, ok := svc.products[id]; ok {
 		return *p, nil
 	}
