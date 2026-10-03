@@ -42,6 +42,9 @@ func (svc *MemoryRepository) Get(ctx context.Context, id string) (Product, error
 }
 
 func (svc *MemoryRepository) List(ctx context.Context) ([]Product, error) {
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+
 	var sl = make([]Product, 0, len(svc.products))
 	for _, value := range svc.products {
 		sl = append(sl, *value)
@@ -50,6 +53,9 @@ func (svc *MemoryRepository) List(ctx context.Context) ([]Product, error) {
 }
 
 func (svc *MemoryRepository) UpdateStock(ctx context.Context, id string, delta int) error {
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+
 	p, ok := svc.products[id]
 	if !ok {
 		return ErrNotFound

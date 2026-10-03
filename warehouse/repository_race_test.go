@@ -2,6 +2,7 @@ package warehouse
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -22,6 +23,19 @@ func TestMemoryRepository_ConcurrentWrites(t *testing.T) {
 				Stock: 1,
 			})
 		}(i)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _ = repo.List(ctx)
+		}()
+
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_ = repo.UpdateStock(ctx, fmt.Sprintf("seed-%d", i%10), -1)
+		}(i)
+
 	}
 	wg.Wait()
 }
