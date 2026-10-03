@@ -34,9 +34,6 @@ func main() {
 	mux := http.NewServeMux()
 	warehouse.RegisterRoutes(mux, svc)
 
-	log.Println("listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
-
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
