@@ -25,6 +25,12 @@ func TestMemoryRepository_ConcurrentWrites(t *testing.T) {
 		}(i)
 
 		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_, _ = repo.Get(ctx, fmt.Sprintf("seed-%d", i%10))
+		}(i)
+
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			_, _ = repo.List(ctx)
