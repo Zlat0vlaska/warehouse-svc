@@ -15,7 +15,6 @@ var _ productRepository = (*MemoryRepository)(nil)
 
 func NewMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
-
 		products: make(map[string]*Product),
 	}
 }
@@ -38,7 +37,7 @@ func (r *MemoryRepository) Get(ctx context.Context, id string) (Product, error) 
 	if p, ok := r.products[id]; ok {
 		return *p, nil
 	}
-	return Product{}, ErrNotFound
+	return Product{}, fmt.Errorf("get %q: %w", id, ErrNotFound)
 }
 
 func (r *MemoryRepository) List(ctx context.Context) ([]Product, error) {
@@ -58,10 +57,10 @@ func (r *MemoryRepository) UpdateStock(ctx context.Context, id string, delta int
 
 	p, ok := r.products[id]
 	if !ok {
-		return ErrNotFound
+		return fmt.Errorf("update stock %q: %w", id, ErrNotFound)
 	}
 	if p.Stock+delta < 0 {
-		return ErrInsufficientStock
+		return fmt.Errorf("update stock %q: %w", id, ErrInsufficientStock)
 	}
 	p.Stock += delta
 	return nil
