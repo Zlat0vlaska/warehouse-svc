@@ -42,8 +42,8 @@ func (svc *MemoryRepository) Get(ctx context.Context, id string) (Product, error
 }
 
 func (svc *MemoryRepository) List(ctx context.Context) ([]Product, error) {
-	svc.mu.Lock()
-	defer svc.mu.Unlock()
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
 
 	var sl = make([]Product, 0, len(svc.products))
 	for _, value := range svc.products {
