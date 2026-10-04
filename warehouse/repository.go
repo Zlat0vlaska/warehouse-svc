@@ -20,43 +20,43 @@ func NewMemoryRepository() *MemoryRepository {
 	}
 }
 
-func (svc *MemoryRepository) Add(ctx context.Context, p Product) error {
-	svc.mu.Lock()
-	defer svc.mu.Unlock()
+func (r *MemoryRepository) Add(ctx context.Context, p Product) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	if _, ok := svc.products[p.ID]; ok {
+	if _, ok := r.products[p.ID]; ok {
 		return fmt.Errorf("add %q: %w", p.ID, ErrAlreadyExists)
 	}
-	svc.products[p.ID] = &p
+	r.products[p.ID] = &p
 	return nil
 }
 
-func (svc *MemoryRepository) Get(ctx context.Context, id string) (Product, error) {
-	svc.mu.RLock()
-	defer svc.mu.RUnlock()
+func (r *MemoryRepository) Get(ctx context.Context, id string) (Product, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	if p, ok := svc.products[id]; ok {
+	if p, ok := r.products[id]; ok {
 		return *p, nil
 	}
 	return Product{}, ErrNotFound
 }
 
-func (svc *MemoryRepository) List(ctx context.Context) ([]Product, error) {
-	svc.mu.RLock()
-	defer svc.mu.RUnlock()
+func (r *MemoryRepository) List(ctx context.Context) ([]Product, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	var sl = make([]Product, 0, len(svc.products))
-	for _, value := range svc.products {
+	var sl = make([]Product, 0, len(r.products))
+	for _, value := range r.products {
 		sl = append(sl, *value)
 	}
 	return sl, nil
 }
 
-func (svc *MemoryRepository) UpdateStock(ctx context.Context, id string, delta int) error {
-	svc.mu.Lock()
-	defer svc.mu.Unlock()
+func (r *MemoryRepository) UpdateStock(ctx context.Context, id string, delta int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	p, ok := svc.products[id]
+	p, ok := r.products[id]
 	if !ok {
 		return ErrNotFound
 	}
