@@ -3,6 +3,7 @@ package warehouse
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 )
 
@@ -23,6 +24,14 @@ func RegisterRoutes(mux *http.ServeMux, svc *ProductService) {
 	mux.HandleFunc("GET /products/{id}", getProductHandler(svc))
 	mux.HandleFunc("POST /products", createProductHandler(svc))
 	mux.HandleFunc("PATCH /products/{id}/stock", updateStockHandler(svc))
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("encode response: %v", err)
+	}
 }
 
 func createProductHandler(svc *ProductService) http.HandlerFunc {
@@ -52,9 +61,7 @@ func createProductHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(p)
+		writeJSON(w, http.StatusCreated, p)
 	}
 }
 
@@ -75,9 +82,7 @@ func getProductHandler(svc *ProductService) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(product)
+		writeJSON(w, http.StatusOK, product)
 	}
 }
 
@@ -89,9 +94,7 @@ func listProductsHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(list)
+		writeJSON(w, http.StatusOK, list)
 	}
 }
 
@@ -133,8 +136,6 @@ func updateStockHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(product)
+		writeJSON(w, http.StatusOK, product)
 	}
 }
