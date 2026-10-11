@@ -42,12 +42,7 @@ func createProductHandler(svc *ProductService) http.HandlerFunc {
 			return
 		}
 
-		p := Product{
-			ID:    req.ID,
-			Name:  req.Name,
-			Price: req.Price,
-			Stock: req.Stock,
-		}
+		p := Product(req)
 
 		if err := svc.Add(r.Context(), p); err != nil {
 			switch {

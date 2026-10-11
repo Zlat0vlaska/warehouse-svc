@@ -90,7 +90,7 @@ func (r *PostgresRepository) UpdateStock(ctx context.Context, id string, delta i
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var stock int
 	err = tx.QueryRow(ctx,
