@@ -6,6 +6,7 @@ package warehouse
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -191,4 +192,31 @@ func TestPostgresRepository_UpdateStock(t *testing.T) {
 			t.Fatalf("got %v, want ErrInsufficientStock", err)
 		}
 	})
+}
+
+func TestPostgresRepository_UpdateStock_Concurrent(t *testing.T) {
+	pool := setupPostgres(t)
+	repo := NewPostgresRepository(pool)
+	ctx := context.Background()
+
+	if err := repo.Add(ctx, Product{ID: "1", Name: "X", Price: 100, Stock: 100}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	const workers = 50
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = repo.UpdateStock(ctx, "1", -1)
+		}()
+	}
+	wg.Wait()
+
+	p, _ := repo.Get(ctx, "1")
+	wantStock := 100 - workers
+	if p.Stock != wantStock {
+		t.Fatalf("stock after concurrent updates: got %d, want %d", p.Stock, wantStock)
+	}
 }
