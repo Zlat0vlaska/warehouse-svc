@@ -164,8 +164,31 @@ func TestPostgresRepository_UpdateStock(t *testing.T) {
 		t.Fatalf("failed to seed data: %v", err)
 	}
 
-	err := repo.UpdateStock(ctx, existingProduct.id, existingProduct.delta)
-	if err != nil {
-		t.Fatalf("failed to seed data: %v", err)
-	}
-} // •	UpdateStock: успех, не найден, недостаточно стока.
+	t.Run("success", func(t *testing.T) {
+		err := repo.UpdateStock(ctx, existingProduct.id, existingProduct.delta)
+		if err != nil {
+			t.Fatalf("failed to seed data: %v", err)
+		}
+		existingProduct.Stock += existingProduct.delta
+		p, err := repo.Get(ctx, existingProduct.id)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if p.Stock != existingProduct.Stock {
+			t.Fatalf("got stock %d, want %d", p.Stock, existingProduct.Stock)
+		}
+	})
+	t.Run("NotFound", func(t *testing.T) {
+		err := repo.UpdateStock(ctx, "nonexistent", 5)
+		if !errors.Is(err, ErrNotFound) {
+			t.Fatalf("got %v, want ErrNotFound", err)
+		}
+	})
+
+	t.Run("NotEnoughStock", func(t *testing.T) {
+		err := repo.UpdateStock(ctx, existingProduct.id, -100)
+		if !errors.Is(err, ErrInsufficientStock) {
+			t.Fatalf("got %v, want ErrInsufficientStock", err)
+		}
+	})
+}
