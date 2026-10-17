@@ -54,7 +54,7 @@ func setupPostgres(t *testing.T) *pgxpool.Pool {
 	// прогнать миграцию руками (goose внутри теста — лишнее)
 	_, err = pool.Exec(ctx, `
         CREATE TABLE products (
-            id         TEXT PRIMARY KEY,
+            ID         TEXT PRIMARY KEY,
             name       TEXT NOT NULL,
             price      INTEGER NOT NULL,
             stock      INTEGER NOT NULL
@@ -131,7 +131,7 @@ func TestPostgresRepository_List(t *testing.T) {
 
 	for _, product := range products {
 		if err := repo.Add(ctx, product); err != nil {
-			t.Fatalf("failed to seed product %d: %v", product.ID, err)
+			t.Fatalf("failed to seed product %s: %v", product.ID, err)
 		}
 
 	}
@@ -166,12 +166,12 @@ func TestPostgresRepository_UpdateStock(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		err := repo.UpdateStock(ctx, existingProduct.id, existingProduct.delta)
+		err := repo.UpdateStock(ctx, existingProduct.ID, 5)
 		if err != nil {
 			t.Fatalf("failed to seed data: %v", err)
 		}
-		existingProduct.Stock += existingProduct.delta
-		p, err := repo.Get(ctx, existingProduct.id)
+		existingProduct.Stock += 5
+		p, err := repo.Get(ctx, existingProduct.ID)
 		if err != nil {
 			t.Fatalf("get: %v", err)
 		}
@@ -187,7 +187,7 @@ func TestPostgresRepository_UpdateStock(t *testing.T) {
 	})
 
 	t.Run("NotEnoughStock", func(t *testing.T) {
-		err := repo.UpdateStock(ctx, existingProduct.id, -100)
+		err := repo.UpdateStock(ctx, existingProduct.ID, -100)
 		if !errors.Is(err, ErrInsufficientStock) {
 			t.Fatalf("got %v, want ErrInsufficientStock", err)
 		}
