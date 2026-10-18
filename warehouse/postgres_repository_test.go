@@ -146,9 +146,19 @@ func TestPostgresRepository_List(t *testing.T) {
 			t.Fatalf("got %v, want %v", gotProducts, products)
 		}
 
-		for i := range gotProducts {
-			if gotProducts[i] != products[i] {
-				t.Fatalf("got %v, want %v", gotProducts[i], products[i])
+		want := make(map[string]Product, len(products))
+		for _, p := range products {
+			want[p.ID] = p
+		}
+
+		for _, got := range gotProducts {
+			expected, ok := want[got.ID]
+			if !ok {
+				t.Errorf("unexpected product ID %s", got.ID)
+				continue
+			}
+			if got != expected {
+				t.Errorf("product %s: got %+v, want %+v", got.ID, got, expected)
 			}
 		}
 	})
