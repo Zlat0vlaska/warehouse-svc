@@ -215,14 +215,22 @@ func TestPostgresRepository_UpdateStock_Concurrent(t *testing.T) {
 
 	const workers = 50
 	var wg sync.WaitGroup
+	errCh := make(chan error, workers)
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_ = repo.UpdateStock(ctx, "1", -1)
+			if err := repo.UpdateStock(ctx, "1", -1); err != nil {
+				errCh <- err
+			}
 		}()
 	}
 	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		t.Errorf("concurrent UpdateStock: %v", err)
+	}
 
 	p, _ := repo.Get(ctx, "1")
 	wantStock := 100 - workers
