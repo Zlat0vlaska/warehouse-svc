@@ -158,7 +158,7 @@ func TestPostgresRepository_List(t *testing.T) {
 				continue
 			}
 			if got != expected {
-				t.Errorf("product %s: got %+v, want %+v", got.ID, got, expected)
+				t.Fatalf("product %s: got %+v, want %+v", got.ID, got, expected)
 			}
 		}
 	})
