@@ -17,7 +17,7 @@ func TestMemoryRepository_ConcurrentWrites(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			_ = repo.Add(ctx, Product{
-				ID:    string(rune('A'+i%26)) + string(rune('0'+i/26)),
+				ID:    fmt.Sprintf("%c%d", 'A'+i%26, i/26),
 				Name:  "X",
 				Price: 1,
 				Stock: 1,

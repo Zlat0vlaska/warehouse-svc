@@ -18,6 +18,7 @@ import (
 func run() error {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
+		// #nosec G101 -- Это локальная БД для тестов, пароль не секретный
 		dsn = "postgres://warehouse:warehouse@localhost:5432/warehouse?sslmode=disable"
 	}
 
